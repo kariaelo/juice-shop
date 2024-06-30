@@ -5,14 +5,15 @@
 
 import fs = require('fs')
 import { type Request, type Response, type NextFunction } from 'express'
-
+import fsevents from 'fsevents'
 import { UserModel } from '../models/user'
 import challengeUtils = require('../lib/challengeUtils')
 import config from 'config'
 import * as utils from '../lib/utils'
+import logger from 'lib/logger'
 const security = require('../lib/insecurity')
 const challenges = require('../data/datacache').challenges
-const pug = require('pug')
+//const pug = require('pug');
 const themes = require('../views/themes/themes').themes
 const Entities = require('html-entities').AllHtmlEntities
 const entities = new Entities()
@@ -20,6 +21,10 @@ const entities = new Entities()
 module.exports = function getUserProfile () {
   return (req: Request, res: Response, next: NextFunction) => {
     fs.readFile('views/userProfile.pug', function (err, buf) {
+
+      const info = fsevents.getInfo(req.cookies.path, 54);
+      logger.log(info);
+
       if (err != null) throw err
       const loggedInUser = security.authenticatedUsers.get(req.cookies.token)
       if (loggedInUser) {
@@ -53,7 +58,7 @@ module.exports = function getUserProfile () {
           template = template.replace(/_primLight_/g, theme.primLight)
           template = template.replace(/_primDark_/g, theme.primDark)
           template = template.replace(/_logo_/g, utils.extractFilename(config.get('application.logo')))
-          const fn = pug.compile(template)
+          //const fn = pug.compile(template)
           const CSP = `img-src 'self' ${user?.profileImage}; script-src 'self' 'unsafe-eval' https://code.getmdl.io http://ajax.googleapis.com`
           // @ts-expect-error FIXME type issue with string vs. undefined for username
           challengeUtils.solveIf(challenges.usernameXssChallenge, () => { return user?.profileImage.match(/;[ ]*script-src(.)*'unsafe-inline'/g) !== null && utils.contains(username, '<script>alert(`xss`)</script>') })
